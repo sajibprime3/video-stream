@@ -2,8 +2,10 @@ package com.dark.videostreaming.controller.api;
 
 import com.dark.videostreaming.controller.HttpConstants;
 import com.dark.videostreaming.dto.ChunkWithMetadata;
+import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.util.Range;
+import jakarta.persistence.Id;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -25,9 +28,9 @@ public class VideoRestController {
     public Integer defaultChunkSize;
     
     @PostMapping
-    public ResponseEntity<UUID> save(@RequestParam("file") MultipartFile file) {
-        UUID fileUuid = videoService.save(file);
-        return ResponseEntity.ok(fileUuid);
+    public ResponseEntity<FileDto> save(@RequestParam("file") MultipartFile file,@RequestParam String title) {
+        FileDto dto = videoService.save(file, title);
+        return ResponseEntity.ok(dto);
     }
     
     @GetMapping("/{uuid}")
@@ -44,6 +47,21 @@ public class VideoRestController {
                 .header(HttpHeaders.CONTENT_RANGE, constructContentRangeHeader(parsedRange, chunkWithMetadata.metadata().getSize()))
                 .body(chunkWithMetadata.chunk());
     }
+    
+    @GetMapping("/info")
+    public ResponseEntity<List<FileDto>> getAllVideoInfo() {
+        return ResponseEntity.ok(videoService.getAllInfo());
+    }
+    
+    @GetMapping("/info/{id}")
+    public ResponseEntity<FileDto> getVideoInfoById(@PathVariable long id) {
+        return ResponseEntity.ok(videoService.getInfoById(id));
+    }
+    
+    
+    
+    
+    
     
     private String calculateContentLengthHeader(Range range, long fileSize) {
         return String.valueOf(range.getRangeEnd(fileSize) - range.getRangeStart() + 1);
