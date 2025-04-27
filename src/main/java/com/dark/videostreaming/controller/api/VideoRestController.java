@@ -5,7 +5,6 @@ import com.dark.videostreaming.dto.ChunkWithMetadata;
 import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.util.Range;
-import jakarta.persistence.Id;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +47,12 @@ public class VideoRestController {
                 .body(chunkWithMetadata.chunk());
     }
     
+    @GetMapping("/generate-preview/{id}")
+    public ResponseEntity<String> generatePreview(@PathVariable long id) {
+        videoService.requestPreviewGeneration(id);
+        return ResponseEntity.ok("Request sent.");
+    }
+    
     @GetMapping("/info")
     public ResponseEntity<List<FileDto>> getAllVideoInfo() {
         return ResponseEntity.ok(videoService.getAllInfo());
@@ -57,11 +62,6 @@ public class VideoRestController {
     public ResponseEntity<FileDto> getVideoInfoById(@PathVariable long id) {
         return ResponseEntity.ok(videoService.getInfoById(id));
     }
-    
-    
-    
-    
-    
     
     private String calculateContentLengthHeader(Range range, long fileSize) {
         return String.valueOf(range.getRangeEnd(fileSize) - range.getRangeStart() + 1);

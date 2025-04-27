@@ -24,5 +24,8 @@ public class File {
     @OneToOne
     FileMetadata metadata;
     
+    @OneToOne(mappedBy = "file")
+    @JoinColumn(name = "preview_id", referencedColumnName = "id")
+    Preview preview;
     
 }

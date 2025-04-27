@@ -10,7 +10,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MinioConfig {
     
-    public static final String BUCKET_NAME = "videos";
+    public static final String VIDEO_BUCKET_NAME = "videos";
+    public static final String PREVIEW_BUCKET_NAME = "previews";
     
     
     @Value("${minio.url}")
@@ -28,14 +29,20 @@ public class MinioConfig {
                 .endpoint(minioUrl)
                 .credentials(minioUser, minioPassword)
                 .build();
-        if (!client.bucketExists(BucketExistsArgs.builder().bucket(BUCKET_NAME).build())) {
+        if (!client.bucketExists(BucketExistsArgs.builder().bucket(VIDEO_BUCKET_NAME).build())) {
             client.makeBucket(
                     MakeBucketArgs.builder()
-                            .bucket(BUCKET_NAME)
+                            .bucket(VIDEO_BUCKET_NAME)
                             .build()
             );
         }
-        
+        if (!client.bucketExists(BucketExistsArgs.builder().bucket(PREVIEW_BUCKET_NAME).build())) {
+            client.makeBucket(
+                    MakeBucketArgs.builder()
+                            .bucket(PREVIEW_BUCKET_NAME)
+                            .build()
+            );
+        }
         return client;
     }
     

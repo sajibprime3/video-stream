@@ -1,21 +1,19 @@
 package com.dark.videostreaming.service.impl;
 
 import com.dark.videostreaming.config.MinioConfig;
-import com.dark.videostreaming.service.MinioStorageService;
+import com.dark.videostreaming.service.PreviewStorageService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
-public class MinioStorageServiceImpl implements MinioStorageService {
+public class PreviewStorageServiceImpl implements PreviewStorageService {
     
     private final MinioClient client;
     
@@ -23,25 +21,26 @@ public class MinioStorageServiceImpl implements MinioStorageService {
     private Long objectPartSize;
     
     @Override
-    public void save(MultipartFile file, UUID uuid) throws Exception {
+    public void save(InputStream file, String name, long size) throws Exception {
         client.putObject(
                 PutObjectArgs.builder()
-                        .bucket(MinioConfig.BUCKET_NAME)
-                        .object(uuid.toString())
-                        .stream(file.getInputStream(), file.getSize(), objectPartSize)
+                        .bucket(MinioConfig.PREVIEW_BUCKET_NAME)
+                        .object(name)
+                        .stream(file, size, objectPartSize)
                         .build()
         );
     }
     
     @Override
-    public InputStream getInputStream(UUID uuid, long offset, long length) throws Exception {
+    public InputStream getInputStream(String name, long offset, long length) throws Exception {
         return client.getObject(
                 GetObjectArgs.builder()
-                        .bucket(MinioConfig.BUCKET_NAME)
-                        .object(uuid.toString())
+                        .bucket(MinioConfig.PREVIEW_BUCKET_NAME)
+                        .object(name)
                         .offset(offset)
                         .length(length)
                         .build()
         );
     }
+    
 }

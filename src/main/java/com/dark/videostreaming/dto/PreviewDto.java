@@ -7,15 +7,14 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FileDto {
+public class PreviewDto {
     
     long id;
+
+    String name;
+
+    long size;
+
+    String status;
     
-    String title;
-    
-    String publishTimestamp;
-    
-    String fileUUID;
-    
-    PreviewDto preview;
 }

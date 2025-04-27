@@ -18,5 +18,6 @@ public interface VideoService {
     
     FileDto getInfoById(long id);
     
+    void requestPreviewGeneration(long id);
     
 }
