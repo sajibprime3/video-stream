@@ -1,8 +1,8 @@
 package com.dark.videostreaming.dto;
 
-import com.dark.videostreaming.entity.FileMetadata;
-
 public record ChunkWithMetadata(
-        FileMetadata metadata,
+        String name,
+        long size,
+        String HttpContentType,
         byte[] chunk
 ) {}

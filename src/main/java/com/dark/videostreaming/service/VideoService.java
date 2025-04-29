@@ -12,7 +12,9 @@ public interface VideoService {
     
     FileDto save(MultipartFile video, String title);
     
-    ChunkWithMetadata fetchChunk(UUID uuid, Range range);
+    ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range);
+    
+    ChunkWithMetadata fetchPreviewChunk(long id, Range range);
     
     List<FileDto> getAllInfo();
     

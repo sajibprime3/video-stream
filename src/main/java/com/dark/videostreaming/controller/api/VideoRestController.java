@@ -33,17 +33,32 @@ public class VideoRestController {
     }
     
     @GetMapping("/{uuid}")
-    public ResponseEntity<byte[]> getChunk(
+    public ResponseEntity<byte[]> getVideoChunk(
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String range,
             @PathVariable UUID uuid
     ) {
         Range parsedRange = Range.parseHttpRangeString(range, defaultChunkSize);
-        ChunkWithMetadata chunkWithMetadata = videoService.fetchChunk(uuid, parsedRange);
+        ChunkWithMetadata chunkWithMetadata = videoService.fetchVideoChunk(uuid, parsedRange);
         return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                .header(HttpHeaders.CONTENT_TYPE, chunkWithMetadata.metadata().getHttpContentType())
+                .header(HttpHeaders.CONTENT_TYPE, chunkWithMetadata.HttpContentType())
                 .header(HttpHeaders.ACCEPT_RANGES, HttpConstants.ACCEPTS_RANGES_VALUE)
-                .header(HttpHeaders.CONTENT_LENGTH, calculateContentLengthHeader(parsedRange, chunkWithMetadata.metadata().getSize()))
-                .header(HttpHeaders.CONTENT_RANGE, constructContentRangeHeader(parsedRange, chunkWithMetadata.metadata().getSize()))
+                .header(HttpHeaders.CONTENT_LENGTH, calculateContentLengthHeader(parsedRange, chunkWithMetadata.size()))
+                .header(HttpHeaders.CONTENT_RANGE, constructContentRangeHeader(parsedRange, chunkWithMetadata.size()))
+                .body(chunkWithMetadata.chunk());
+    }
+    
+    @GetMapping("/preview/{id}")
+    public ResponseEntity<byte[]> getPreviewChunk(
+            @RequestHeader(value = HttpHeaders.RANGE, required = false) String range,
+            @PathVariable long id
+    ) {
+        Range parsedRange = Range.parseHttpRangeString(range, defaultChunkSize);
+        ChunkWithMetadata chunkWithMetadata = videoService.fetchPreviewChunk(id, parsedRange);
+        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                .header(HttpHeaders.CONTENT_TYPE, chunkWithMetadata.HttpContentType())
+                .header(HttpHeaders.ACCEPT_RANGES, HttpConstants.ACCEPTS_RANGES_VALUE)
+                .header(HttpHeaders.CONTENT_LENGTH, calculateContentLengthHeader(parsedRange, chunkWithMetadata.size()))
+                .header(HttpHeaders.CONTENT_RANGE, constructContentRangeHeader(parsedRange, chunkWithMetadata.size()))
                 .body(chunkWithMetadata.chunk());
     }
     

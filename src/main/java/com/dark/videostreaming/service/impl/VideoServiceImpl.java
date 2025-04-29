@@ -10,8 +10,10 @@ import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
 import com.dark.videostreaming.repository.PreviewRepository;
 import com.dark.videostreaming.service.PreviewGeneratorService;
+import com.dark.videostreaming.service.PreviewStorageService;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.service.VideoStorageService;
+import com.dark.videostreaming.util.ChunkReader;
 import com.dark.videostreaming.util.Range;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +22,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -33,6 +34,8 @@ import java.util.UUID;
 public class VideoServiceImpl implements VideoService {
     
     private final VideoStorageService videoStorageService;
+    
+    private final PreviewStorageService previewStorageService;
     
     private final PreviewGeneratorService previewGeneratorService;
     
@@ -83,10 +86,27 @@ public class VideoServiceImpl implements VideoService {
     }
     
     @Override
-    public ChunkWithMetadata fetchChunk(UUID uuid, Range range) {
+    public ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range) {
         FileMetadata metadata = metadataRepository.findById(uuid).orElseThrow();
-        return new ChunkWithMetadata(metadata, readChunk(uuid, range, metadata.getSize()));
+        return new ChunkWithMetadata(metadata.getUuid().toString(),
+                metadata.getSize(),
+                metadata.getHttpContentType(),
+                ChunkReader.read(metadata.getUuid().toString(), range, metadata.getSize(), videoStorageService)
+        );
     }
+
+    @Override
+    public ChunkWithMetadata fetchPreviewChunk(long id, Range range) {
+        Preview preview = previewRepository.findById(id).orElseThrow();
+        
+        return new ChunkWithMetadata(
+                preview.getName(),
+                preview.getSize(),
+                "application/octet-stream",
+                ChunkReader.read(preview.getName(), range, preview.getSize(), previewStorageService)
+        );
+    }
+
 
     @Override
     public List<FileDto> getAllInfo() {
@@ -104,16 +124,4 @@ public class VideoServiceImpl implements VideoService {
         previewGeneratorService.generatePreview(id);
     }
     
-    
-    private byte[] readChunk(UUID uuid, Range range, long fileSize) {
-        long startPosition = range.getRangeStart();
-        long endPosition = range.getRangeEnd(fileSize);
-        int chunkSize = (int) (endPosition - startPosition + 1);
-        try(InputStream inputStream = videoStorageService.getInputStream(uuid.toString(), startPosition, chunkSize)) {
-            return inputStream.readAllBytes();
-        } catch (Exception ex) {
-            log.error("Exception occurred when trying to read file with ID = {}", uuid);
-            throw new RuntimeException(ex);
-        }
-    }
 }
