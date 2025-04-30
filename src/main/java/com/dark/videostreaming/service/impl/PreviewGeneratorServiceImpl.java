@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.*;
 import java.util.List;
+import java.util.Locale;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -112,6 +113,7 @@ public class PreviewGeneratorServiceImpl implements PreviewGeneratorService {
             String output = outputDir + "/clip" + i + ".mp4";
             List<String> command = List.of(
                     "ffmpeg",
+                    "-ss", String.format(Locale.US, "%.2f", startTimes.get(i)),
                     "-i", input,
                     "-t", String.valueOf(clipLength),
                     "-c:v", "libx264",
