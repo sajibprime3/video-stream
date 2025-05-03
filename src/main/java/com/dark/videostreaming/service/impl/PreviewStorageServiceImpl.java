@@ -5,6 +5,7 @@ import com.dark.videostreaming.service.PreviewStorageService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,17 @@ public class PreviewStorageServiceImpl implements PreviewStorageService {
                         .build()
         );
     }
-    
+
+    @Override
+    public void delete(String name) throws Exception {
+        client.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(MinioConfig.PREVIEW_BUCKET_NAME)
+                        .object(name)
+                        .build()
+        );
+    }
+
     @Override
     public InputStream getInputStream(String name, long offset, long length) throws Exception {
         return client.getObject(

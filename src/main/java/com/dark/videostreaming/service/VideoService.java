@@ -12,6 +12,8 @@ public interface VideoService {
     
     FileDto save(MultipartFile video, String title);
     
+    void deleteVideo(long id);
+    
     ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range);
     
     ChunkWithMetadata fetchPreviewChunk(long id, Range range);

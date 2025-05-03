@@ -10,7 +10,6 @@ import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
 import com.dark.videostreaming.repository.PreviewRepository;
-import com.dark.videostreaming.service.PreviewGeneratorService;
 import com.dark.videostreaming.service.PreviewStorageService;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.service.VideoStorageService;
@@ -38,8 +37,6 @@ public class VideoServiceImpl implements VideoService {
     private final VideoStorageService videoStorageService;
     
     private final PreviewStorageService previewStorageService;
-    
-    private final PreviewGeneratorService previewGeneratorService;
     
     private final FileMetadataRepository metadataRepository;
     
@@ -88,7 +85,25 @@ public class VideoServiceImpl implements VideoService {
         }
         
     }
-    
+
+    @Transactional
+    @Override
+    public void deleteVideo(long id) {
+        if (!fileRepository.existsById(id)) throw new RuntimeException("Video not found!");
+        File fileToDelete = fileRepository.findById(id).orElseThrow();
+        if (!metadataRepository.existsById(fileToDelete.getMetadata().getUuid())) throw new RuntimeException("FileMetadata not found!");
+        if (!previewRepository.existsById(fileToDelete.getPreview().getId())) throw new RuntimeException("Preview not found!");
+        try {
+        videoStorageService.delete(fileToDelete.getMetadata().getUuid().toString());
+        previewStorageService.delete(fileToDelete.getPreview().getName());
+        } catch (Exception e) {
+            throw new RuntimeException("Couldn't delete Objects from storage",e);
+        }
+        metadataRepository.deleteById(fileToDelete.getMetadata().getUuid());
+        previewRepository.deleteById(fileToDelete.getPreview().getId());
+        fileRepository.deleteById(fileToDelete.getId());
+    }
+
     @Override
     public ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range) {
         FileMetadata metadata = metadataRepository.findById(uuid).orElseThrow();

@@ -32,6 +32,12 @@ public class VideoRestController {
         return ResponseEntity.ok(dto);
     }
     
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteVideo(@PathVariable long id) {
+        videoService.deleteVideo(id);
+        return ResponseEntity.ok("Request sent.");
+    }
+    
     @GetMapping("/{uuid}")
     public ResponseEntity<byte[]> getVideoChunk(
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String range,
