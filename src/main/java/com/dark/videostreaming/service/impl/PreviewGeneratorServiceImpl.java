@@ -3,6 +3,7 @@ package com.dark.videostreaming.service.impl;
 import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
+import com.dark.videostreaming.event.PreviewCreationEvent;
 import com.dark.videostreaming.repository.FileRepository;
 import com.dark.videostreaming.repository.PreviewRepository;
 import com.dark.videostreaming.service.PreviewGeneratorService;
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 
 import java.io.*;
@@ -33,9 +36,10 @@ public class PreviewGeneratorServiceImpl implements PreviewGeneratorService {
     private final Path temp = Paths.get(System.getProperty("user.dir")).resolve("tmp");
 
     @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Override
-    public void generatePreview(long videoId) {
-        File video = fileRepository.findById(videoId).orElseThrow();
+    public void generatePreview(PreviewCreationEvent event) {
+        File video = fileRepository.findById(event.getFileId()).orElseThrow();
         generateAndStorePreview(video.getPreview(), video.getMetadata());
     }
     

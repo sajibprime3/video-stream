@@ -5,6 +5,7 @@ import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
+import com.dark.videostreaming.event.PreviewCreationEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -18,6 +19,7 @@ import com.dark.videostreaming.util.Range;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +46,8 @@ public class VideoServiceImpl implements VideoService {
     private final FileRepository fileRepository;
     
     private final PreviewRepository previewRepository;
+    
+    private final ApplicationEventPublisher eventPublisher;
     
     private final FileMapper fileMapper;
     
@@ -76,7 +80,7 @@ public class VideoServiceImpl implements VideoService {
             Preview savedPreview = previewRepository.save(preview);
             file.setPreview(savedPreview);
             File savedFile = fileRepository.save(file);
-            previewGeneratorService.generatePreview(savedFile.getId());
+            eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
@@ -121,7 +125,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public void requestPreviewGeneration(long id) {
         //Todo Validate request. i.e check if Video exists, size etc.
-        previewGeneratorService.generatePreview(id);
+        eventPublisher.publishEvent(new PreviewCreationEvent(id));
     }
     
 }
