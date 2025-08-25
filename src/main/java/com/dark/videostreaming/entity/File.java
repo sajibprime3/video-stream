@@ -28,4 +28,8 @@ public class File {
     @JoinColumn(name = "preview_id", referencedColumnName = "id")
     Preview preview;
     
+    @OneToOne(mappedBy = "file")
+    @JoinColumn(name = "thumbnail_id", referencedColumnName = "id")
+    Thumbnail thumbnail;
+    
 }

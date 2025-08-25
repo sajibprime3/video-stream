@@ -8,20 +8,15 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class FileDto {
+public class ThumbnailDto {
+    Long id;
 
-    long id;
+    String name;
 
-    String title;
+    Long size;
 
-    String publishTimestamp;
-
-    String fileUUID;
-
-    PreviewDto preview;
-
-    ThumbnailDto thumbnail;
+    String status;
 }

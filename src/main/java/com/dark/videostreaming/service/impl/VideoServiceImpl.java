@@ -1,5 +1,12 @@
 package com.dark.videostreaming.service.impl;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+import jakarta.transaction.Transactional;
+
 import com.dark.videostreaming.dto.ChunkWithMetadata;
 import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.entity.File;
@@ -10,49 +17,47 @@ import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
 import com.dark.videostreaming.repository.PreviewRepository;
+import com.dark.videostreaming.repository.ThumbnailRepository;
 import com.dark.videostreaming.service.PreviewStorageService;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.service.VideoStorageService;
 import com.dark.videostreaming.util.ChunkReader;
 import com.dark.videostreaming.util.Range;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Slf4j
 @EnableAsync
 @Service
 public class VideoServiceImpl implements VideoService {
-    
+
     private final VideoStorageService videoStorageService;
-    
+
     private final PreviewStorageService previewStorageService;
-    
+
     private final FileMetadataRepository metadataRepository;
-    
+
     private final FileRepository fileRepository;
-    
+
     private final PreviewRepository previewRepository;
-    
+
+    private final ThumbnailRepository thumbnailRepository;
+
     private final ApplicationEventPublisher eventPublisher;
-    
+
     private final FileMapper fileMapper;
-    
-    
+
     @Override
     @Transactional
     public FileDto save(MultipartFile video, String title) {
-        //Todo Validate The video. i.e size.
+        // Todo Validate The video. i.e size.
         try {
             FileMetadata metadata = FileMetadata.builder()
                     .size(video.getSize())
@@ -63,9 +68,9 @@ public class VideoServiceImpl implements VideoService {
                     .publishDate(LocalDate.now())
                     .metadata(metadata)
                     .build();
-            
+
             UUID fileUuid = metadataRepository.save(metadata).getUuid();
-            
+
             videoStorageService.save(video.getInputStream(), fileUuid.toString(), video.getSize());
             Instant instant = Instant.now();
             Preview preview = Preview.builder()
@@ -83,21 +88,24 @@ public class VideoServiceImpl implements VideoService {
             log.error("Exception occurred when trying to save the file:", ex);
             throw new RuntimeException(ex);
         }
-        
+
     }
 
     @Transactional
     @Override
     public void deleteVideo(long id) {
-        if (!fileRepository.existsById(id)) throw new RuntimeException("Video not found!");
+        if (!fileRepository.existsById(id))
+            throw new RuntimeException("Video not found!");
         File fileToDelete = fileRepository.findById(id).orElseThrow();
-        if (!metadataRepository.existsById(fileToDelete.getMetadata().getUuid())) throw new RuntimeException("FileMetadata not found!");
-        if (!previewRepository.existsById(fileToDelete.getPreview().getId())) throw new RuntimeException("Preview not found!");
+        if (!metadataRepository.existsById(fileToDelete.getMetadata().getUuid()))
+            throw new RuntimeException("FileMetadata not found!");
+        if (!previewRepository.existsById(fileToDelete.getPreview().getId()))
+            throw new RuntimeException("Preview not found!");
         try {
-        videoStorageService.delete(fileToDelete.getMetadata().getUuid().toString());
-        previewStorageService.delete(fileToDelete.getPreview().getName());
+            videoStorageService.delete(fileToDelete.getMetadata().getUuid().toString());
+            previewStorageService.delete(fileToDelete.getPreview().getName());
         } catch (Exception e) {
-            throw new RuntimeException("Couldn't delete Objects from storage",e);
+            throw new RuntimeException("Couldn't delete Objects from storage", e);
         }
         metadataRepository.deleteById(fileToDelete.getMetadata().getUuid());
         previewRepository.deleteById(fileToDelete.getPreview().getId());
@@ -110,22 +118,19 @@ public class VideoServiceImpl implements VideoService {
         return new ChunkWithMetadata(metadata.getUuid().toString(),
                 metadata.getSize(),
                 metadata.getHttpContentType(),
-                ChunkReader.read(metadata.getUuid().toString(), range, metadata.getSize(), videoStorageService)
-        );
+                ChunkReader.read(metadata.getUuid().toString(), range, metadata.getSize(), videoStorageService));
     }
 
     @Override
     public ChunkWithMetadata fetchPreviewChunk(long id, Range range) {
         Preview preview = previewRepository.findById(id).orElseThrow();
-        
+
         return new ChunkWithMetadata(
                 preview.getName(),
                 preview.getSize(),
                 "application/octet-stream",
-                ChunkReader.read(preview.getName(), range, preview.getSize(), previewStorageService)
-        );
+                ChunkReader.read(preview.getName(), range, preview.getSize(), previewStorageService));
     }
-
 
     @Override
     public List<FileDto> getAllInfo() {
@@ -139,8 +144,8 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public void requestPreviewGeneration(long id) {
-        //Todo Validate request. i.e check if Video exists, size etc.
+        // Todo Validate request. i.e check if Video exists, size etc.
         eventPublisher.publishEvent(new PreviewCreationEvent(id));
     }
-    
+
 }
