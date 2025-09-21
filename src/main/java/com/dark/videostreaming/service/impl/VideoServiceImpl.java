@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.dark.videostreaming.event.ThumbnailCreationEvent;
 import jakarta.transaction.Transactional;
 
 import com.dark.videostreaming.dto.ChunkWithMetadata;
@@ -12,6 +13,7 @@ import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
+import com.dark.videostreaming.entity.Thumbnail;
 import com.dark.videostreaming.event.PreviewCreationEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
@@ -81,8 +83,16 @@ public class VideoServiceImpl implements VideoService {
                     .build();
             Preview savedPreview = previewRepository.save(preview);
             file.setPreview(savedPreview);
+            Thumbnail thumbnail = Thumbnail.builder()
+                    .file(file)
+                    .name(fileUuid + "_thumbnail_" + instant)
+                    .createdAt(instant)
+                    .status(Thumbnail.ThumbnailStatus.PENDING)
+                    .build();
+            Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
             eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
+            eventPublisher.publishEvent(new ThumbnailCreationEvent(savedFile.getId()));
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
