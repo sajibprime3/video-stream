@@ -1,8 +1,10 @@
 package com.dark.videostreaming.dto;
 
+import org.springframework.http.MediaType;
+
 public record ChunkWithMetadata(
         String name,
         long size,
-        String HttpContentType,
-        byte[] chunk
-) {}
+        MediaType contentType,
+        byte[] chunk) {
+}

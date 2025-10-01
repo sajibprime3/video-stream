@@ -20,12 +20,14 @@ import com.dark.videostreaming.repository.FileRepository;
 import com.dark.videostreaming.repository.PreviewRepository;
 import com.dark.videostreaming.repository.ThumbnailRepository;
 import com.dark.videostreaming.service.PreviewStorageService;
+import com.dark.videostreaming.service.ThumbnailStorageService;
 import com.dark.videostreaming.service.VideoService;
 import com.dark.videostreaming.service.VideoStorageService;
 import com.dark.videostreaming.util.ChunkReader;
 import com.dark.videostreaming.util.Range;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +45,8 @@ public class VideoServiceImpl implements VideoService {
 
     private final PreviewStorageService previewStorageService;
 
+    private final ThumbnailStorageService thumbnailStorageService;
+
     private final FileMetadataRepository metadataRepository;
 
     private final FileRepository fileRepository;
@@ -59,10 +63,14 @@ public class VideoServiceImpl implements VideoService {
     @Transactional
     public FileDto save(MultipartFile video, String title) {
         // Todo Validate The video. i.e size.
+        if (video.getContentType() == null) {
+            // add custom errors to handle problems with the uploaded video.
+            throw new Error();
+        }
         try {
             FileMetadata metadata = FileMetadata.builder()
                     .size(video.getSize())
-                    .HttpContentType(video.getContentType())
+                    .mediaType(MediaType.parseMediaType(video.getContentType()))
                     .build();
             File file = File.builder()
                     .title(title)
@@ -125,7 +133,7 @@ public class VideoServiceImpl implements VideoService {
         FileMetadata metadata = metadataRepository.findById(uuid).orElseThrow();
         return new ChunkWithMetadata(metadata.getUuid().toString(),
                 metadata.getSize(),
-                metadata.getHttpContentType(),
+                metadata.getMediaType(),
                 ChunkReader.read(metadata.getUuid().toString(), range, metadata.getSize(), videoStorageService));
     }
 
@@ -136,8 +144,20 @@ public class VideoServiceImpl implements VideoService {
         return new ChunkWithMetadata(
                 preview.getName(),
                 preview.getSize(),
-                "application/octet-stream",
+                MediaType.APPLICATION_OCTET_STREAM,
                 ChunkReader.read(preview.getName(), range, preview.getSize(), previewStorageService));
+    }
+
+    @Override
+    public ChunkWithMetadata fetchThumbnail(long id) {
+        // Todo add checks for thumbnails. like is there a any valid thumbnails
+        // available.
+        Thumbnail thumbnail = fileRepository.findById(id).orElseThrow().getThumbnail();
+        return new ChunkWithMetadata(
+                thumbnail.getName(),
+                thumbnail.getSize(),
+                MediaType.IMAGE_JPEG,
+                ChunkReader.read(thumbnail.getName(), thumbnail.getSize(), thumbnailStorageService));
     }
 
     @Override
