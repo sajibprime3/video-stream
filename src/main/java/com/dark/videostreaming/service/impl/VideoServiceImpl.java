@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import com.dark.videostreaming.event.ThumbnailCreationEvent;
 import jakarta.transaction.Transactional;
 
 import com.dark.videostreaming.dto.ChunkWithMetadata;
@@ -92,7 +91,6 @@ public class VideoServiceImpl implements VideoService {
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
             eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
-            eventPublisher.publishEvent(new ThumbnailCreationEvent(savedFile.getId()));
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
@@ -152,6 +150,7 @@ public class VideoServiceImpl implements VideoService {
         return fileMapper.fileToFileDto(fileRepository.findById(id).orElseThrow());
     }
 
+    @Transactional
     @Override
     public void requestPreviewGeneration(long id) {
         // Todo Validate request. i.e check if Video exists, size etc.
