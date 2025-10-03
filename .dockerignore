@@ -1,0 +1,28 @@
+.git/
+.gitattributes
+.gitignore
+*.md
+
+# Gradle-specific files
+.gradle/
+build/
+out/
+
+Dockerfile
+docker-compose.yaml
+
+h2/
+*.mv.db
+*.trace.db
+*.lock.db
+
+
+# IDE-specific files (IntelliJ, Eclipse, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+*.log
+
+tmp/
+
