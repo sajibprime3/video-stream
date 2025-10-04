@@ -98,6 +98,7 @@ public class VideoServiceImpl implements VideoService {
                     .build();
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
+            // FIX: Use Kafka instead.
             eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
@@ -174,6 +175,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public void requestPreviewGeneration(long id) {
         // Todo Validate request. i.e check if Video exists, size etc.
+        // FIX: (refactor) Use Kafak instead.
         eventPublisher.publishEvent(new PreviewCreationEvent(id));
     }
 
