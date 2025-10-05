@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import jakarta.transaction.Transactional;
 
@@ -13,7 +14,6 @@ import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
 import com.dark.videostreaming.entity.Thumbnail;
-import com.dark.videostreaming.event.PreviewCreationEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -26,8 +26,9 @@ import com.dark.videostreaming.service.VideoStorageService;
 import com.dark.videostreaming.util.ChunkReader;
 import com.dark.videostreaming.util.Range;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,7 +56,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final ThumbnailRepository thumbnailRepository;
 
-    private final ApplicationEventPublisher eventPublisher;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     private final FileMapper fileMapper;
 
@@ -98,8 +99,8 @@ public class VideoServiceImpl implements VideoService {
                     .build();
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
-            // FIX: Use Kafka instead.
-            eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
+            // FIX: Use Real Events.
+            kafkaTemplate.send("video.events", "hello there!");
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
@@ -174,9 +175,17 @@ public class VideoServiceImpl implements VideoService {
     @Transactional
     @Override
     public void requestPreviewGeneration(long id) {
-        // Todo Validate request. i.e check if Video exists, size etc.
-        // FIX: (refactor) Use Kafak instead.
-        eventPublisher.publishEvent(new PreviewCreationEvent(id));
+        // TODO: Validate request. i.e check if Video exists, size etc.
+        // TODO: Use Actual Event Message.
+        String msg = "hello there!";
+        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send("video.events", msg);
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                log.info("Sent message=[ {} ] with offset=[ {} ]", msg, result.getRecordMetadata().offset());
+            } else {
+                log.info("Unable to send message=[ {} ] due to: {}", msg, ex.getMessage());
+            }
+        });
     }
 
 }
