@@ -14,6 +14,8 @@ import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
 import com.dark.videostreaming.entity.Thumbnail;
+import com.dark.videostreaming.event.Event;
+import com.dark.videostreaming.event.VideoUploadedEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -56,7 +58,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final ThumbnailRepository thumbnailRepository;
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, Event<?>> kafkaTemplate;
 
     private final FileMapper fileMapper;
 
@@ -99,8 +101,9 @@ public class VideoServiceImpl implements VideoService {
                     .build();
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
-            // FIX: Use Real Events.
-            kafkaTemplate.send("video.events", "hello there!");
+            Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
+                    new VideoUploadedEvent(savedFile.getId(), savedFile.getTitle()));
+            kafkaTemplate.send("video.events", event);
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
@@ -176,14 +179,17 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public void requestPreviewGeneration(long id) {
         // TODO: Validate request. i.e check if Video exists, size etc.
-        // TODO: Use Actual Event Message.
-        String msg = "hello there!";
-        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send("video.events", msg);
+        File file = fileRepository.findById(id).orElseThrow();
+        Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
+                new VideoUploadedEvent(1, file.getMetadata().getUuid().toString()));
+        CompletableFuture<SendResult<String, Event<?>>> future = kafkaTemplate.send("video.events",
+                event);
         future.whenComplete((result, ex) -> {
             if (ex == null) {
-                log.info("Sent message=[ {} ] with offset=[ {} ]", msg, result.getRecordMetadata().offset());
+                log.info("Sent message=[ {} ] with offset=[ {} ]", event.getPayload().fileName(),
+                        result.getRecordMetadata().offset());
             } else {
-                log.info("Unable to send message=[ {} ] due to: {}", msg, ex.getMessage());
+                log.info("Unable to send message=[ {} ] due to: {}", event.getPayload().fileName(), ex.getMessage());
             }
         });
     }
