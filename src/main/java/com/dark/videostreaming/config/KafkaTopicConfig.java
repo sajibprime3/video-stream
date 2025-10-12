@@ -9,8 +9,16 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     @Bean
-    public NewTopic VideoEvents() {
+    public NewTopic videoEvents() {
         return TopicBuilder.name("video.events")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic previewEvents() {
+        return TopicBuilder.name("video.preview.events")
                 .partitions(3)
                 .replicas(1)
                 .build();
