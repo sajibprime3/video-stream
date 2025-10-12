@@ -2,10 +2,13 @@ package com.dark.videostreaming.entity;
 
 import java.util.UUID;
 
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+
+import com.dark.videostreaming.converter.MediaTypeConverter;
 
 import org.springframework.http.MediaType;
 
@@ -29,6 +32,7 @@ public class FileMetadata {
 
     private long size;
 
+    @Convert(converter = MediaTypeConverter.class)
     private MediaType mediaType;
 
 }

@@ -2,5 +2,6 @@ package com.dark.videostreaming.event;
 
 public record VideoUploadedEvent(
         long videoId,
-        String fileName) {
+        String fileName,
+        long fileSize) {
 }

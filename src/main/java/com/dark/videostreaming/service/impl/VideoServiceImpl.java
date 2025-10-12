@@ -102,7 +102,8 @@ public class VideoServiceImpl implements VideoService {
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
             Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
-                    new VideoUploadedEvent(savedFile.getId(), savedFile.getTitle()));
+                    new VideoUploadedEvent(savedFile.getId(), savedFile.getMetadata().getUuid().toString(),
+                            savedFile.getMetadata().getSize()));
             kafkaTemplate.send("video.events", event);
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
@@ -181,7 +182,7 @@ public class VideoServiceImpl implements VideoService {
         // TODO: Validate request. i.e check if Video exists, size etc.
         File file = fileRepository.findById(id).orElseThrow();
         Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
-                new VideoUploadedEvent(1, file.getMetadata().getUuid().toString()));
+                new VideoUploadedEvent(1, file.getMetadata().getUuid().toString(), file.getMetadata().getSize()));
         CompletableFuture<SendResult<String, Event<?>>> future = kafkaTemplate.send("video.events",
                 event);
         future.whenComplete((result, ex) -> {
