@@ -23,4 +23,12 @@ public class KafkaTopicConfig {
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic thumbnailEvents() {
+        return TopicBuilder.name("video.thumbnail.events")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 }
