@@ -13,9 +13,11 @@ import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
+import com.dark.videostreaming.entity.Preview.PreviewStatus;
 import com.dark.videostreaming.entity.Thumbnail;
 import com.dark.videostreaming.event.Event;
 import com.dark.videostreaming.event.VideoUploadedEvent;
+import com.dark.videostreaming.event.model.PreviewUpdateEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -132,6 +134,36 @@ public class VideoServiceImpl implements VideoService {
         metadataRepository.deleteById(fileToDelete.getMetadata().getUuid());
         previewRepository.deleteById(fileToDelete.getPreview().getId());
         fileRepository.deleteById(fileToDelete.getId());
+    }
+
+    @Override
+    public void addPreview(long id, PreviewUpdateEvent data) {
+        if (!fileRepository.existsById(id))
+            throw new RuntimeException("Video not found!");
+        File file = fileRepository.findById(id).orElseThrow();
+        // TODO: Make Change so that we can have multiple Preview records?
+        // NOTE: for now Let's just Update the existing one even though method's name is
+        // "add".
+        if (!previewRepository.existsById(file.getPreview().getId()))
+            throw new RuntimeException("No Preview Found!");
+        Preview preview = previewRepository.findById(id).orElseThrow();
+        if (data.getName() != null) {
+            preview.setName(data.getName());
+        }
+        if (data.getSize() > 0)
+            preview.setSize(data.getSize());
+        if (data.getCreatedAt() instanceof Instant)
+            preview.setCreatedAt(data.getCreatedAt());
+        if (data.getStatus() != null && !data.getStatus().isBlank()) {
+            switch (data.getStatus()) {
+                case "processing" -> preview.setStatus(PreviewStatus.PROCESSING);
+                case "ready" -> preview.setStatus(PreviewStatus.READY);
+                case "failed" -> preview.setStatus(PreviewStatus.FAILED);
+                default -> preview.setStatus(PreviewStatus.PENDING);
+            }
+        }
+        previewRepository.save(preview);
+
     }
 
     @Override
