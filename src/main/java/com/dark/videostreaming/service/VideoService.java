@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.dark.videostreaming.dto.ChunkWithMetadata;
 import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.event.model.PreviewUpdateEvent;
+import com.dark.videostreaming.event.model.ThumbnailUpdateEvent;
 import com.dark.videostreaming.util.Range;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,8 @@ public interface VideoService {
     void deleteVideo(long id);
 
     void addPreview(long id, PreviewUpdateEvent data);
+
+    void addThumbnail(long id, ThumbnailUpdateEvent data);
 
     ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range);
 

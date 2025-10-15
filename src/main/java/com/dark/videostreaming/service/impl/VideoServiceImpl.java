@@ -15,9 +15,11 @@ import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
 import com.dark.videostreaming.entity.Preview.PreviewStatus;
 import com.dark.videostreaming.entity.Thumbnail;
+import com.dark.videostreaming.entity.Thumbnail.ThumbnailStatus;
 import com.dark.videostreaming.event.Event;
 import com.dark.videostreaming.event.VideoUploadedEvent;
 import com.dark.videostreaming.event.model.PreviewUpdateEvent;
+import com.dark.videostreaming.event.model.ThumbnailUpdateEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -167,6 +169,35 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
+    public void addThumbnail(long id, ThumbnailUpdateEvent data) {
+        if (!fileRepository.existsById(id))
+            throw new RuntimeException("Video not found!");
+        File file = fileRepository.findById(id).orElseThrow();
+        // TODO: Make Change so that we can have multiple Thumbnail records?
+        // NOTE: for now Let's just Update the existing one even though method's name is
+        // "add".
+        if (!thumbnailRepository.existsById(file.getThumbnail().getId()))
+            throw new RuntimeException("No Thumbnail Found!");
+        Thumbnail thumbnail = thumbnailRepository.findById(id).orElseThrow();
+        if (data.getName() != null) {
+            thumbnail.setName(data.getName());
+        }
+        if (data.getSize() > 0)
+            thumbnail.setSize(data.getSize());
+        if (data.getCreatedAt() instanceof Instant)
+            thumbnail.setCreatedAt(data.getCreatedAt());
+        if (data.getStatus() != null && !data.getStatus().isBlank()) {
+            switch (data.getStatus()) {
+                case "processing" -> thumbnail.setStatus(ThumbnailStatus.PROCESSING);
+                case "ready" -> thumbnail.setStatus(ThumbnailStatus.READY);
+                case "failed" -> thumbnail.setStatus(ThumbnailStatus.FAILED);
+                default -> thumbnail.setStatus(ThumbnailStatus.PENDING);
+            }
+        }
+        thumbnailRepository.save(thumbnail);
+    }
+
+    @Override
     public ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range) {
         FileMetadata metadata = metadataRepository.findById(uuid).orElseThrow();
         return new ChunkWithMetadata(metadata.getUuid().toString(),
@@ -214,7 +245,7 @@ public class VideoServiceImpl implements VideoService {
         // TODO: Validate request. i.e check if Video exists, size etc.
         File file = fileRepository.findById(id).orElseThrow();
         Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
-                new VideoUploadedEvent(1, file.getMetadata().getUuid().toString(), file.getMetadata().getSize()));
+                new VideoUploadedEvent(id, file.getMetadata().getUuid().toString(), file.getMetadata().getSize()));
         CompletableFuture<SendResult<String, Event<?>>> future = kafkaTemplate.send("video.events",
                 event);
         future.whenComplete((result, ex) -> {
