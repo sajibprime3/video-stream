@@ -1,4 +1,4 @@
-package com.dark.videostreaming.event;
+package com.dark.videostreaming.event.model;
 
 public record VideoUploadedEvent(
         long videoId,
