@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import jakarta.transaction.Transactional;
 
@@ -12,8 +13,13 @@ import com.dark.videostreaming.dto.FileDto;
 import com.dark.videostreaming.entity.File;
 import com.dark.videostreaming.entity.FileMetadata;
 import com.dark.videostreaming.entity.Preview;
+import com.dark.videostreaming.entity.Preview.PreviewStatus;
 import com.dark.videostreaming.entity.Thumbnail;
-import com.dark.videostreaming.event.PreviewCreationEvent;
+import com.dark.videostreaming.entity.Thumbnail.ThumbnailStatus;
+import com.dark.videostreaming.event.Event;
+import com.dark.videostreaming.event.model.PreviewUpdateEvent;
+import com.dark.videostreaming.event.model.ThumbnailUpdateEvent;
+import com.dark.videostreaming.event.model.VideoUploadedEvent;
 import com.dark.videostreaming.mapper.FileMapper;
 import com.dark.videostreaming.repository.FileMetadataRepository;
 import com.dark.videostreaming.repository.FileRepository;
@@ -26,8 +32,9 @@ import com.dark.videostreaming.service.VideoStorageService;
 import com.dark.videostreaming.util.ChunkReader;
 import com.dark.videostreaming.util.Range;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,7 +62,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final ThumbnailRepository thumbnailRepository;
 
-    private final ApplicationEventPublisher eventPublisher;
+    private final KafkaTemplate<String, Event<?>> kafkaTemplate;
 
     private final FileMapper fileMapper;
 
@@ -98,7 +105,10 @@ public class VideoServiceImpl implements VideoService {
                     .build();
             Thumbnail savedThumbnail = thumbnailRepository.save(thumbnail);
             File savedFile = fileRepository.save(file);
-            eventPublisher.publishEvent(new PreviewCreationEvent(savedFile.getId()));
+            Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
+                    new VideoUploadedEvent(savedFile.getId(), savedFile.getMetadata().getUuid().toString(),
+                            savedFile.getMetadata().getSize()));
+            kafkaTemplate.send("video.events", event);
             return fileMapper.fileToFileDto(savedFile);
         } catch (Exception ex) {
             log.error("Exception occurred when trying to save the file:", ex);
@@ -126,6 +136,65 @@ public class VideoServiceImpl implements VideoService {
         metadataRepository.deleteById(fileToDelete.getMetadata().getUuid());
         previewRepository.deleteById(fileToDelete.getPreview().getId());
         fileRepository.deleteById(fileToDelete.getId());
+    }
+
+    @Override
+    public void addPreview(long id, PreviewUpdateEvent data) {
+        if (!fileRepository.existsById(id))
+            throw new RuntimeException("Video not found!");
+        File file = fileRepository.findById(id).orElseThrow();
+        // TODO: Make Change so that we can have multiple Preview records?
+        // NOTE: for now Let's just Update the existing one even though method's name is
+        // "add".
+        if (!previewRepository.existsById(file.getPreview().getId()))
+            throw new RuntimeException("No Preview Found!");
+        Preview preview = previewRepository.findById(id).orElseThrow();
+        if (data.getName() != null) {
+            preview.setName(data.getName());
+        }
+        if (data.getSize() > 0)
+            preview.setSize(data.getSize());
+        if (data.getCreatedAt() instanceof Instant)
+            preview.setCreatedAt(data.getCreatedAt());
+        if (data.getStatus() != null && !data.getStatus().isBlank()) {
+            switch (data.getStatus()) {
+                case "processing" -> preview.setStatus(PreviewStatus.PROCESSING);
+                case "ready" -> preview.setStatus(PreviewStatus.READY);
+                case "failed" -> preview.setStatus(PreviewStatus.FAILED);
+                default -> preview.setStatus(PreviewStatus.PENDING);
+            }
+        }
+        previewRepository.save(preview);
+
+    }
+
+    @Override
+    public void addThumbnail(long id, ThumbnailUpdateEvent data) {
+        if (!fileRepository.existsById(id))
+            throw new RuntimeException("Video not found!");
+        File file = fileRepository.findById(id).orElseThrow();
+        // TODO: Make Change so that we can have multiple Thumbnail records?
+        // NOTE: for now Let's just Update the existing one even though method's name is
+        // "add".
+        if (!thumbnailRepository.existsById(file.getThumbnail().getId()))
+            throw new RuntimeException("No Thumbnail Found!");
+        Thumbnail thumbnail = thumbnailRepository.findById(id).orElseThrow();
+        if (data.getName() != null) {
+            thumbnail.setName(data.getName());
+        }
+        if (data.getSize() > 0)
+            thumbnail.setSize(data.getSize());
+        if (data.getCreatedAt() instanceof Instant)
+            thumbnail.setCreatedAt(data.getCreatedAt());
+        if (data.getStatus() != null && !data.getStatus().isBlank()) {
+            switch (data.getStatus()) {
+                case "processing" -> thumbnail.setStatus(ThumbnailStatus.PROCESSING);
+                case "ready" -> thumbnail.setStatus(ThumbnailStatus.READY);
+                case "failed" -> thumbnail.setStatus(ThumbnailStatus.FAILED);
+                default -> thumbnail.setStatus(ThumbnailStatus.PENDING);
+            }
+        }
+        thumbnailRepository.save(thumbnail);
     }
 
     @Override
@@ -173,8 +242,20 @@ public class VideoServiceImpl implements VideoService {
     @Transactional
     @Override
     public void requestPreviewGeneration(long id) {
-        // Todo Validate request. i.e check if Video exists, size etc.
-        eventPublisher.publishEvent(new PreviewCreationEvent(id));
+        // TODO: Validate request. i.e check if Video exists, size etc.
+        File file = fileRepository.findById(id).orElseThrow();
+        Event<VideoUploadedEvent> event = new Event<VideoUploadedEvent>("VideoUploaded", "1.0", Instant.now(),
+                new VideoUploadedEvent(id, file.getMetadata().getUuid().toString(), file.getMetadata().getSize()));
+        CompletableFuture<SendResult<String, Event<?>>> future = kafkaTemplate.send("video.events",
+                event);
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                log.info("Sent message=[ {} ] with offset=[ {} ]", event.getPayload().fileName(),
+                        result.getRecordMetadata().offset());
+            } else {
+                log.info("Unable to send message=[ {} ] due to: {}", event.getPayload().fileName(), ex.getMessage());
+            }
+        });
     }
 
 }

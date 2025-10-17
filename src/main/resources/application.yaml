@@ -1,0 +1,29 @@
+app:
+  streaming:
+    default-chunk-size: 3145728
+spring:
+  application:
+    name: video-stream
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+  datasource:
+    url: jdbc:h2:file:./h2/demo;AUTO_SERVER=TRUE;AUTO_RECONNECT=TRUE
+    driverClassName: org.h2.Driver
+    username: user
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+minio:
+  url: http://localhost:9000
+  username: user
+  password: password
+  object-part-size: 5242880

@@ -1,6 +1,5 @@
 package com.dark.videostreaming.entity;
 
-import java.time.Duration;
 import java.time.Instant;
 
 import jakarta.persistence.Entity;
@@ -37,8 +36,6 @@ public class Thumbnail {
     private String name;
 
     private long size;
-
-    private Duration duration;
 
     private Instant createdAt;
 
