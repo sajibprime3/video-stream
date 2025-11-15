@@ -11,7 +11,7 @@ public interface MetadataMapper {
 
     @Mapping(target = "name", source = "name")
     @Mapping(target = "size", source = "size")
-    @Mapping(target = "contentType", expression = "java(metadata.toString())")
+    @Mapping(target = "contentType", expression = "java(metadata.getMediaType().toString())")
     MetadataDto metadataToMetadataDto(Metadata metadata);
 
 }
