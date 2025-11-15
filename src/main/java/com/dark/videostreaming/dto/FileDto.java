@@ -1,5 +1,7 @@
 package com.dark.videostreaming.dto;
 
+import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,13 +15,11 @@ import lombok.Setter;
 @Builder
 public class FileDto {
 
-    long id;
+    UUID uuid;
 
     String title;
 
     String publishTimestamp;
-
-    String fileUUID;
 
     PreviewDto preview;
 

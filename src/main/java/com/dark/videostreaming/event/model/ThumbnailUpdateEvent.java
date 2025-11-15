@@ -1,6 +1,7 @@
 package com.dark.videostreaming.event.model;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +10,7 @@ import lombok.Data;
 @Builder
 public class ThumbnailUpdateEvent {
 
-    private long videoId;
+    private UUID videoId;
     private String name;
     private long size;
     private String status;

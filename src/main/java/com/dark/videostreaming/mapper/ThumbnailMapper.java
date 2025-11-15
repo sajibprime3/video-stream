@@ -10,8 +10,6 @@ import org.mapstruct.Mapping;
 public interface ThumbnailMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "name", source = "name")
-    @Mapping(target = "size", source = "size")
     @Mapping(target = "status", expression = "java(thumbnail.getStatus().name())")
     ThumbnailDto thumbnailToThumbnailDto(Thumbnail thumbnail);
 }

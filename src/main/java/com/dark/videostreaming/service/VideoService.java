@@ -3,11 +3,10 @@ package com.dark.videostreaming.service;
 import java.util.List;
 import java.util.UUID;
 
-import com.dark.videostreaming.dto.ChunkWithMetadata;
 import com.dark.videostreaming.dto.FileDto;
+import com.dark.videostreaming.dto.MetadataDto;
 import com.dark.videostreaming.event.model.PreviewUpdateEvent;
 import com.dark.videostreaming.event.model.ThumbnailUpdateEvent;
-import com.dark.videostreaming.util.Range;
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,22 +14,22 @@ public interface VideoService {
 
     FileDto save(MultipartFile video, String title);
 
-    void deleteVideo(long id);
+    void deleteVideo(UUID uuid);
 
-    void addPreview(long id, PreviewUpdateEvent data);
+    void addPreview(UUID uuid, PreviewUpdateEvent data);
 
-    void addThumbnail(long id, ThumbnailUpdateEvent data);
-
-    ChunkWithMetadata fetchVideoChunk(UUID uuid, Range range);
-
-    ChunkWithMetadata fetchPreviewChunk(long id, Range range);
-
-    ChunkWithMetadata fetchThumbnail(long id);
+    void addThumbnail(UUID uuid, ThumbnailUpdateEvent data);
 
     List<FileDto> getAllInfo();
 
-    FileDto getInfoById(long id);
+    FileDto getInfoById(UUID uuid);
 
-    void requestPreviewGeneration(long id);
+    MetadataDto getVideoMetadata(UUID uuid);
+
+    MetadataDto getPreviewMetadata(UUID uuid);
+
+    MetadataDto getThumbnailMetadata(UUID uuid);
+
+    void requestPreviewGeneration(UUID uuid);
 
 }

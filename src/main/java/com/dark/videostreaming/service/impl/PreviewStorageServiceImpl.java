@@ -1,26 +1,28 @@
 package com.dark.videostreaming.service.impl;
 
+import java.io.InputStream;
+
 import com.dark.videostreaming.config.MinioConfig;
 import com.dark.videostreaming.service.PreviewStorageService;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.io.InputStream;
 
 @RequiredArgsConstructor
 @Service
 public class PreviewStorageServiceImpl implements PreviewStorageService {
-    
+
     private final MinioClient client;
-    
+
     @Value("${minio.object-part-size}")
     private Long objectPartSize;
-    
+
     @Override
     public void save(InputStream file, String name, long size) throws Exception {
         client.putObject(
@@ -28,8 +30,7 @@ public class PreviewStorageServiceImpl implements PreviewStorageService {
                         .bucket(MinioConfig.PREVIEW_BUCKET_NAME)
                         .object(name)
                         .stream(file, size, objectPartSize)
-                        .build()
-        );
+                        .build());
     }
 
     @Override
@@ -38,8 +39,7 @@ public class PreviewStorageServiceImpl implements PreviewStorageService {
                 RemoveObjectArgs.builder()
                         .bucket(MinioConfig.PREVIEW_BUCKET_NAME)
                         .object(name)
-                        .build()
-        );
+                        .build());
     }
 
     @Override
@@ -50,8 +50,7 @@ public class PreviewStorageServiceImpl implements PreviewStorageService {
                         .object(name)
                         .offset(offset)
                         .length(length)
-                        .build()
-        );
+                        .build());
     }
-    
+
 }

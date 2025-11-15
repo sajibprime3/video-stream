@@ -30,12 +30,11 @@ public class Thumbnail {
     private long id;
 
     @OneToOne
-    @JoinColumn(name = "file_id", referencedColumnName = "id")
+    @JoinColumn(name = "file_uuid", referencedColumnName = "uuid")
     private File file;
 
-    private String name;
-
-    private long size;
+    @OneToOne
+    Metadata metadata;
 
     private Instant createdAt;
 

@@ -10,8 +10,7 @@ import org.mapstruct.Mapping;
 public interface PreviewMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "name", source = "name")
-    @Mapping(target = "size", source = "size")
+    @Mapping(target = "duration", source = "duration")
     @Mapping(target = "status", expression = "java(preview.getStatus().name())")
     PreviewDto previewToPreviewDto(Preview preview);
 

@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class FileCreateRequestDto {
-    
+
     String title;
-    
+
 }

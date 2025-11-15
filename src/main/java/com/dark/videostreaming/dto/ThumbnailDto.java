@@ -14,9 +14,5 @@ import lombok.Setter;
 public class ThumbnailDto {
     Long id;
 
-    String name;
-
-    Long size;
-
     String status;
 }

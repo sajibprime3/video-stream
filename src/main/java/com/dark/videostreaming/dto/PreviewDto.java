@@ -1,6 +1,12 @@
 package com.dark.videostreaming.dto;
 
-import lombok.*;
+import java.time.Duration;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -8,13 +14,11 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class PreviewDto {
-    
+
     long id;
 
-    String name;
-
-    long size;
-
     String status;
-    
+
+    Duration duration;
+
 }
